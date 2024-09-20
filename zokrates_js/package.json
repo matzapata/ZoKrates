@@ -1,8 +1,8 @@
 {
   "name": "zokrates-js",
   "version": "1.1.8",
-  "module": "index.js",
-  "main": "index-node.js",
+  "main": "dist/node/cjs/index.js",
+  "module": "dist/node/esm/index.js",
   "description": "JavaScript bindings for ZoKrates",
   "contributors": [
     "Darko Macesic <darem966@gmail.com>",
@@ -15,41 +15,51 @@
   ],
   "license": "GPLv3",
   "files": [
-    "index.js",
-    "index-node.js",
-    "index.d.ts",
-    "wasm.js",
-    "metadata.js",
-    "umd.min.js"
+    "dist"
   ],
-  "types": "index.d.ts",
-  "type": "module",
+  "types": "./dist/types/index.d.ts",
   "exports": {
-    "node": "./index-node.js",
-    "default": "./index.js"
+    ".": {
+      "node": {
+        "import": "./dist/node/esm/index.js",
+        "require": "./dist/node/cjs/index.js"
+      },
+      "browser": "./dist/browser/esm/index.js",
+      "umd": "./dist/browser/umd/index.min.js",
+      "types": "./dist/types/index.d.ts"
+    }
   },
   "scripts": {
+    "clean": "rimraf ./dist",
     "wasm-pack": "wasm-pack build --out-name index --target web",
-    "prebuild": "npm install",
+    "prebuild": "npm install && npm run clean",
     "build": "npm run wasm-pack -- --release && npm run patch && npm run bundle",
     "build:dev": "npm run wasm-pack -- --dev && npm run patch && npm run bundle",
     "pretest": "npm run build:dev",
     "test": "npm run run-tests",
     "run-tests": "mocha --timeout 100000 --recursive tests",
     "patch": "node patch.js",
-    "bundle": "browserify ./index.js --standalone zokrates -t [ babelify --presets [ @babel/preset-env ] ] | uglifyjs --compress --mangle > umd.min.js"
+    "bundle": "npm run build:types && npm run build:cjs && npm run build:esm:node && npm run build:esm:browser && npm run build:umd",
+    "build:types": "cpy index.d.ts dist/types",
+    "build:cjs": "babel *.js --out-dir dist/node/cjs --env-name cjs",
+    "build:esm:node": "babel *.js --out-dir dist/node/esm --env-name esm",
+    "build:esm:browser": "babel *.js --out-dir dist/browser/esm --env-name esm",
+    "build:umd": "mkdir -p dist/browser/umd && browserify index.js --standalone zokrates -t [ babelify --presets [ @babel/preset-env ] ] | uglifyjs --compress --mangle > ./dist/browser/umd/index.min.js"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.12",
+    "@babel/cli": "7.25.6",
+    "@babel/core": "7.25.2",
+    "@babel/plugin-transform-object-rest-spread": "7.24.7",
     "@babel/preset-env": "^7.20.2",
     "acorn": "^8.8.1",
     "astring": "^1.8.4",
     "babelify": "^10.0.0",
     "browserify": "^17.0.0",
+    "cpy-cli": "5.0.0",
     "dree": "^3.4.3",
     "mocha": "^9.2.0",
     "puppeteer": "^19.6.0",
-    "rimraf": "^3.0.2",
+    "rimraf": "3.0.2",
     "snarkjs": "^0.4.25",
     "uglify-js": "^3.17.4",
     "wasm-pack": "^0.10.2"
